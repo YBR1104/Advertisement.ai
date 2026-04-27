@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap');
+@import 'tailwindcss';
+
+* {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+@layer base {
+    body {
+        @apply min-h-screen bg-white text-gray-700 antialiased;
+        --pattern-fg: color-mix(in oklab, var(--color-gray-950) 8%, transparent);
+        background-image:
+            radial-gradient(circle at 12% 10%, rgba(56, 189, 248, 0.12) 0%, transparent 42%),
+            radial-gradient(circle at 86% 22%, rgba(14, 165, 233, 0.08) 0%, transparent 36%),
+            linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    button {
+        @apply cursor-pointer;
+    }
+
+    code {
+        font-family: 'IBM Plex Mono', monospace;
+    }
+}
+
+@keyframes marquee {
+    0% {
+        transform: translateX(0%);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+.animate-marquee {
+    display: inline-flex;
+    animation: marquee 16s linear infinite;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
+}
+
+.animate-float {
+    animation: float 5s ease-in-out infinite;
+}
+
+@theme {
+    --color-primary: #0284c7;
+    --color-primary-hover: #0369a1;
+    --color-secondary: #0ea5e9;
+    --color-dark-bg: #f8fafc;
+    --color-dark-card: #f1f5f9;
+}
+
+@layer utilities {
+    .glass-panel {
+        @apply border border-gray-900/10 bg-white/90 backdrop-blur-lg;
+        box-shadow: 0 22px 55px rgba(2, 6, 23, 0.08);
+    }
+
+    .btn-secondary {
+        @apply rounded-full border border-sky-300/45 bg-sky-50 px-6 py-3 font-semibold text-sky-900 transition-all duration-300 hover:bg-sky-100;
+    }
+}
