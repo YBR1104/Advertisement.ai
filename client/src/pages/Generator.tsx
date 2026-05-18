@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import Title from "../components/Title";
 import UploadZone from "./UploadZone";
 import { Loader2Icon, RectangleHorizontalIcon, RectangleVerticalIcon, Wand2Icon } from "lucide-react";
 import { PrimaryButton } from "../components/Buttons";
@@ -56,54 +55,151 @@ const Generator = () => {
     }
 
     return (
-        <div className="mt-28 min-h-screen p-6 text-gray-700 md:p-12">
-           <form  onSubmit={handleGenerate} className="mx-auto mb-40 max-w-4xl rounded-3xl border border-gray-900/10 bg-white p-6 shadow-[0_22px_50px_rgba(2,6,23,0.08)] md:p-10">
-            <Title heading="Create In-Context Image" description="Upload your model and product images to generate stunning image,short-form videos and social media content." />
-           <div className="flex items-start justify-between gap-20 max-sm:flex-col">
-           <div className="mt-8 mb-12 flex w-full flex-col gap-8 sm:max-w-60">
-             <UploadZone label="Product Image" file ={productImage} onClear={() => {setProductImage(null)}} onChange={(e) =>handleFileChange (e,'product')}/>
-             <UploadZone label="Model Image" file ={modelImage} onClear={() => {setModelImage(null)}} onChange={(e) =>handleFileChange(e,'model')}/>
-           </div>
-           <div className="w-full">
-            <div className="mb-4 text-gray-700" >
-            <label htmlFor="name" className="block text-sm mb-4">Project Name</label>
-            <input type="text" id="name" value={name} onChange={(e)=>setName(e.target.value)} placeholder="Name your project" required className="w-full rounded-lg border border-gray-300/80 bg-gray-50 p-4 text-sm text-gray-800 outline-none transition-all focus:border-sky-400 focus:bg-white"/>
-           </div>
-            <div className="mb-4 text-gray-700">
-            <label htmlFor="productname" className="block text-sm mb-4">Product Name</label>
-            <input type="text" id="productname" value={productName} onChange={(e)=>setProductName(e.target.value)} placeholder="Name your product" required className="w-full rounded-lg border border-gray-300/80 bg-gray-50 p-4 text-sm text-gray-800 outline-none transition-all focus:border-sky-400 focus:bg-white"/>
-           </div>
-            <div className="mb-4 text-gray-700">
-            <label htmlFor="productdescription" className="mb-4 block text-sm">Product description <span className="text-xs text-sky-700">(optional)</span></label>
-            <textarea id="productdescription" rows={4} value={productDescription} onChange={(e) =>setProductDescription(e.target.value)}placeholder="Enter the description of the product"
-                className="w-full resize-none rounded-lg border border-gray-300/80 bg-gray-50 p-4 text-sm text-gray-800 outline-none transition-all focus:border-sky-400 focus:bg-white"/>
-             
-           </div>
-           <div className="mb-4 text-gray-700">
-            <label className="block text-sm mb-4">Aspect Ratio</label>
-            <div className="flex gap-3">
-                <RectangleVerticalIcon onClick={()=> setAspectRatio('9:16')} className={`size-13 cursor-pointer rounded-xl border border-gray-300/80 bg-gray-50 p-2.5 text-gray-700 transition-all ring-2 ring-transparent
-                    ${aspectRatio === '9:16' ? 'ring-sky-300 border-sky-400 bg-sky-50':''}`}/>
-                <RectangleHorizontalIcon onClick={()=> setAspectRatio('16:9')} className={`size-13 cursor-pointer rounded-xl border border-gray-300/80 bg-gray-50 p-2.5 text-gray-700 transition-all ring-2 ring-transparent
-                    ${aspectRatio === '16:9' ? 'ring-sky-300 border-sky-400 bg-sky-50':''}`}/>
+        <div className="mx-auto w-full max-w-[1500px] text-zinc-200">
+            <div className="editor-panel mb-4 rounded-3xl p-5 sm:mb-6 sm:p-8">
+                <p className="text-xs uppercase tracking-[0.2em] text-violet-300">AI Image Generator</p>
+                <h2 className="mt-3 text-2xl font-semibold text-zinc-50 sm:text-3xl">Create in-context product visuals</h2>
+                <p className="mt-3 max-w-3xl text-sm leading-relaxed text-zinc-400 sm:text-base">
+                    Upload product and model images, then describe your scene. The existing generation pipeline remains unchanged.
+                </p>
             </div>
-           </div>
-            <div className="mb-4 text-gray-700">
-            <label htmlFor="userPrompt" className="mb-4 block text-sm">User Prompt <span className="text-xs text-sky-700">(optional)</span></label>
-            <textarea id="userPrompt" rows={4} value={userPrompt} onChange={(e) =>setUserPrompt(e.target.value)}placeholder="Enter the ideas or specific requirements you have for the generated content"
-                className="w-full resize-none rounded-lg border border-gray-300/80 bg-gray-50 p-4 text-sm text-gray-800 outline-none transition-all focus:border-sky-400 focus:bg-white"/>
-             
-           </div>
-           </div>
-           </div>
-            <div className="flex justify-center mt-10">
-           <PrimaryButton disabled = {isGenerating} className="rounded-full px-10 py-3">
-            {isGenerating ? (<>
-            <Loader2Icon className="size-5 animate-spin"/>Generating</>) :(<>
-            <Wand2Icon className="size-5"/>Generate Image</>)}
-           </PrimaryButton>
-           </div>
-           </form>
+
+            <form onSubmit={handleGenerate} className="grid gap-4 sm:gap-6 lg:grid-cols-[1.6fr_1fr]">
+                <section className="editor-panel rounded-3xl p-4 sm:p-8">
+                    <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
+                        <div className="md:col-span-2">
+                            <label htmlFor="name" className="mb-2.5 block text-sm font-medium text-zinc-200">
+                                Project Name
+                            </label>
+                            <input
+                                type="text"
+                                id="name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Summer campaign launch"
+                                required
+                                className="w-full rounded-2xl border border-white/12 bg-[#1a1b25] p-3 text-sm text-zinc-100 outline-none transition focus:border-violet-400 focus-visible:ring-2 focus-visible:ring-violet-300/35 sm:p-3.5"
+                            />
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <label htmlFor="productname" className="mb-2.5 block text-sm font-medium text-zinc-200">
+                                Product Name
+                            </label>
+                            <input
+                                type="text"
+                                id="productname"
+                                value={productName}
+                                onChange={(e) => setProductName(e.target.value)}
+                                placeholder="Aqua bottle"
+                                required
+                                className="w-full rounded-2xl border border-white/12 bg-[#1a1b25] p-3 text-sm text-zinc-100 outline-none transition focus:border-violet-400 focus-visible:ring-2 focus-visible:ring-violet-300/35 sm:p-3.5"
+                            />
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <label htmlFor="productdescription" className="mb-2.5 block text-sm font-medium text-zinc-200">
+                                Product Description <span className="text-xs text-zinc-500">(optional)</span>
+                            </label>
+                            <textarea
+                                id="productdescription"
+                                rows={4}
+                                value={productDescription}
+                                onChange={(e) => setProductDescription(e.target.value)}
+                                placeholder="Describe material, look, and marketing vibe"
+                                className="w-full resize-none rounded-2xl border border-white/12 bg-[#1a1b25] p-3 text-sm text-zinc-100 outline-none transition focus:border-violet-400 focus-visible:ring-2 focus-visible:ring-violet-300/35 sm:p-3.5"
+                            />
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <label className="mb-2.5 block text-sm font-medium text-zinc-200">Aspect Ratio</label>
+                            <div className="flex flex-wrap gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setAspectRatio('9:16')}
+                                    className={`inline-flex items-center gap-2 rounded-full border px-4 py-3 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07070a] ${
+                                        aspectRatio === '9:16'
+                                            ? 'border-violet-400/65 bg-violet-500/15 text-violet-100'
+                                            : 'border-white/12 bg-[#171821] text-zinc-300 hover:border-white/25'
+                                    }`}
+                                >
+                                    <RectangleVerticalIcon className="size-5" />
+                                    9:16
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setAspectRatio('16:9')}
+                                    className={`inline-flex items-center gap-2 rounded-full border px-4 py-3 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07070a] ${
+                                        aspectRatio === '16:9'
+                                            ? 'border-violet-400/65 bg-violet-500/15 text-violet-100'
+                                            : 'border-white/12 bg-[#171821] text-zinc-300 hover:border-white/25'
+                                    }`}
+                                >
+                                    <RectangleHorizontalIcon className="size-5" />
+                                    16:9
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <label htmlFor="userPrompt" className="mb-2.5 block text-sm font-medium text-zinc-200">
+                                User Prompt <span className="text-xs text-zinc-500">(optional)</span>
+                            </label>
+                            <textarea
+                                id="userPrompt"
+                                rows={4}
+                                value={userPrompt}
+                                onChange={(e) => setUserPrompt(e.target.value)}
+                                placeholder="Add style direction, background mood, and camera framing"
+                                className="w-full resize-none rounded-2xl border border-white/12 bg-[#1a1b25] p-3 text-sm text-zinc-100 outline-none transition focus:border-violet-400 focus-visible:ring-2 focus-visible:ring-violet-300/35 sm:p-3.5"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mt-6 border-t border-white/10 pt-6">
+                        <PrimaryButton
+                            disabled={isGenerating}
+                            className="w-full justify-center rounded-full px-8 py-3.5 text-sm font-semibold"
+                        >
+                            {isGenerating ? (
+                                <>
+                                    <Loader2Icon className="size-5 animate-spin" />
+                                    Generating Image
+                                </>
+                            ) : (
+                                <>
+                                    <Wand2Icon className="size-5" />
+                                    Generate Image
+                                </>
+                            )}
+                        </PrimaryButton>
+                    </div>
+                </section>
+
+                <section className="editor-panel space-y-4 rounded-3xl p-4 sm:p-8">
+                    <UploadZone
+                        label="Product Image"
+                        file={productImage}
+                        onClear={() => {
+                            setProductImage(null);
+                        }}
+                        onChange={(e) => handleFileChange(e, 'product')}
+                    />
+                    <UploadZone
+                        label="Model Image"
+                        file={modelImage}
+                        onClear={() => {
+                            setModelImage(null);
+                        }}
+                        onChange={(e) => handleFileChange(e, 'model')}
+                    />
+
+                    <div className="rounded-2xl border border-white/10 bg-[#171821] p-4 text-xs leading-relaxed text-zinc-400">
+                        For best quality, upload sharp images with clear lighting and minimal background clutter.
+                    </div>
+                </section>
+            </form>
         </div>
     );
 }

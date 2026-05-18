@@ -16,13 +16,13 @@ export default function Title({ title, heading, description }: TitleProps) {
                     whileInView={{ y: 0, opacity: 1 }}
                     viewport={{ once: true }}
                     transition={{ type: "spring", stiffness: 250, damping: 70, mass: 1 }}
-                    className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-sky-700"
+                    className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-violet-300"
                 >
                     {title}
                 </motion.p>
             )}
             {heading && (
-                <motion.h2 className="text-2xl font-semibold text-gray-900 md:text-4xl"
+                <motion.h2 className="text-2xl font-semibold text-zinc-100 md:text-4xl"
                     initial={{ y: 60, opacity: 0 }}
                     whileInView={{ y: 0, opacity: 1 }}
                     viewport={{ once: true }}
@@ -32,7 +32,7 @@ export default function Title({ title, heading, description }: TitleProps) {
                 </motion.h2>
             )}
             {description && (
-                <motion.p className='mx-auto my-3 max-w-2xl text-sm leading-relaxed text-gray-600'
+                <motion.p className='mx-auto my-3 max-w-2xl text-sm leading-relaxed text-zinc-400'
                     initial={{ y: 60, opacity: 0 }}
                     whileInView={{ y: 0, opacity: 1 }}
                     viewport={{ once: true }}

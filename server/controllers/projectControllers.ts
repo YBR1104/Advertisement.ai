@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import ai from "../configs/ai.js";
 import axios from "axios";
+
 const loadImage =(path: string, mimeType: string) => {
     return {
         inlineData: {
@@ -15,6 +16,43 @@ const loadImage =(path: string, mimeType: string) => {
         }
     }
 }
+
+const buildEnhancedVideoPrompt = ({
+    intent,
+    script,
+    productName,
+    productDescription,
+}: {
+    intent?: string,
+    script?: string,
+    productName?: string,
+    productDescription?: string,
+}) => {
+    const cleanedIntent = String(intent || '').trim();
+    const cleanedScript = String(script || '').trim();
+    const cleanedProductName = String(productName || '').trim();
+    const cleanedProductDescription = String(productDescription || '').trim();
+
+    return `Create a high-quality, realistic marketing video.
+
+Primary user intent:
+${cleanedIntent || `Showcase ${cleanedProductName || 'the product'} in a premium ad style.`}
+
+${cleanedScript ? `Script guidance (follow this structure closely):
+${cleanedScript}
+` : ''}
+
+${cleanedProductName ? `Product name: ${cleanedProductName}` : ''}
+${cleanedProductDescription ? `Product details: ${cleanedProductDescription}` : ''}
+
+Enhance the user input by:
+- Expanding it into coherent cinematic shots while preserving the original intent.
+- Keeping motion natural, physically plausible, and commercially usable.
+- Maintaining clean framing, smooth camera movement, and professional ad lighting.
+- Avoiding unrelated objects, extra text overlays, logos, or visual noise unless requested.
+`;
+}
+
 export const createProject = async (req: Request, res: Response) =>{
     let tempProjectId: string;
     const { userId } = req.auth();
@@ -103,8 +141,12 @@ export const createProject = async (req: Request, res: Response) =>{
         const hasReferenceImages = images.length >= 2;
 
         // image to base64 structure for ai model
-        const img1base64 = hasReferenceImages ? loadImage(images[0].path , images[0].mimetype) : null;
-        const img2base64 = hasReferenceImages ? loadImage(images[1].path,images[1].mimetype) : null;
+        const referenceImages = hasReferenceImages
+            ? [
+                loadImage(images[0].path , images[0].mimetype),
+                loadImage(images[1].path,images[1].mimetype)
+            ]
+            : [];
 
         const prompt ={
             text: `Create a realistic, high-quality ecommerce image.
@@ -128,7 +170,7 @@ export const createProject = async (req: Request, res: Response) =>{
         // Generate the image using the ai model
         const response: any = await ai.models.generateContent({
             model,
-            contents: hasReferenceImages ? [img1base64,img2base64,prompt] : [prompt],
+            contents: [...referenceImages,prompt],
             config: generationConfig
         })
 
@@ -186,63 +228,122 @@ export const createProject = async (req: Request, res: Response) =>{
 
 export const createVideo = async (req: Request, res: Response) =>{
     const {userId} = req.auth()
-    const { projectId} = req.body;
+    const {
+        projectId,
+        name = 'Prompt Video',
+        aspectRatio = '9:16',
+        targetLength = 5,
+        videoPrompt = '',
+        videoScript = '',
+    } = req.body;
+
+    const textToVideoMode = !projectId;
+    const parsedPrompt = String(videoPrompt || '').trim();
+    const parsedScript = String(videoScript || '').trim();
+    const promptInput = [parsedPrompt, parsedScript].filter(Boolean).join('. ');
+    const videoCreditCost = 10;
+
+    if(textToVideoMode && !promptInput){
+        return res.status(400).json({message: 'Enter a prompt or script to generate video'});
+    }
+
     let isCrediedDeducted = false;
+    let activeProjectId = String(projectId || '');
 
     const user = await prisma.user.findUnique({
         where: {id: userId}
     })
-    if(!user || user.credits < 10){
+    if(!user || user.credits < videoCreditCost){
         return res.status(401).json({message: 'Insufficient credits'});
     }
 
     // deduct credits for video generation
     await prisma.user.update({
         where: {id: userId},
-        data: {credits: {decrement: 10}}
+        data: {credits: {decrement: videoCreditCost}}
     }).then(()=> {isCrediedDeducted = true})
+
     try {
-        const project = await prisma.project.findUnique({
-            where: {id: projectId , userId},
-            include: {user: true}
-        })
+        let prompt = promptInput;
+        let finalAspectRatio = String(aspectRatio || '9:16');
+        let imageConfig: {imageBytes: string, mimeType: string} | undefined;
 
-        if(!project || project.isGenerating){
-            return res.status(404).json({message: 'Generation in progress'});
-        }
+            //    prompt = `make the person showcase the product which is ${project.productName} ${project.productDescription && `and Product Description: ${project.productDescription}`}`
+            // finalAspectRatio = project?.aspectRatio || '9:16';
 
-        if(project.generatedVideo){
-            return res.status(404).json({message: 'Video already generated'})
-        }
+        if(textToVideoMode){
+            prompt = buildEnhancedVideoPrompt({
+                intent: parsedPrompt,
+                script: parsedScript,
+                productName: name,
+                productDescription: parsedScript,
+            });
 
-        await prisma.project.update({
-            where: {id: projectId},
-            data: {isGenerating: true}
-        })
+            const createdProject = await prisma.project.create({
+                data: {
+                    name: String(name || 'Prompt Video'),
+                    userId,
+                    productName: String(name || 'Prompt Video'),
+                    productDescription: parsedScript,
+                    userPrompt: parsedPrompt,
+                    aspectRatio: finalAspectRatio,
+                    targetLength: parseInt(targetLength) || 5,
+                    uploadedImages: [],
+                    isGenerating: true,
+                    isPublished: false,
+                    error: ''
+                }
+            })
 
-        const prompt = `make the person showcase the product which is ${project.productName} ${project.productDescription && `and Product Description: ${project.productDescription}`}`
+            activeProjectId = createdProject.id;
+        }else{
+            const project = await prisma.project.findUnique({
+                where: {id: activeProjectId , userId},
+            })
 
-        const model = 'veo-3.1-generate-preview'
+            if(!project || project.isGenerating){
+                return res.status(404).json({message: 'Generation in progress'});
+            }
 
-        if(!project.generatedImage){
-            throw new Error('Generated image not found')
-        }
+            if(project.generatedVideo){
+                return res.status(404).json({message: 'Video already generated'})
+            }
 
-        const image = await axios.get(project.generatedImage,{responseType: 'arraybuffer'})
+            if(!project.generatedImage){
+                throw new Error('Generated image not found')
+            }
 
-        const imageBytes: any = Buffer.from(image.data)
+            await prisma.project.update({
+                where: {id: activeProjectId},
+                data: {isGenerating: true, error: ''}
+            })
 
-        const imageMimeType = image.headers['content-type'] || 'image/png'
+            prompt = buildEnhancedVideoPrompt({
+                intent: project.userPrompt,
+                script: project.productDescription,
+                productName: project.productName,
+                productDescription: project.productDescription,
+            });
+            finalAspectRatio = project?.aspectRatio || '9:16';
 
-        let operation: any = await ai.models.generateVideos({
-            model,
-            prompt,
-            image: {
+
+      
+            const image = await axios.get(project.generatedImage,{responseType: 'arraybuffer'})
+            const imageBytes: any = Buffer.from(image.data)
+            const imageMimeType = image.headers['content-type'] || 'image/png'
+
+            imageConfig = {
                 imageBytes: imageBytes.toString('base64'),
                 mimeType: imageMimeType,
-            },
+            }
+        }
+
+        let operation: any = await ai.models.generateVideos({
+            model: 'veo-3.1-generate-preview',
+            prompt,
+            ...(imageConfig ? {image: imageConfig} : {}),
             config: {
-                aspectRatio: project?.aspectRatio || '9:16',
+                aspectRatio: finalAspectRatio,
                 numberOfVideos: 1,
                 resolution: '720p'
             }
@@ -276,31 +377,35 @@ export const createVideo = async (req: Request, res: Response) =>{
             resource_type: 'video'
 
         });
+
         await prisma.project.update({
-            where: {id: project.id},
+            where: {id: activeProjectId},
             data: {
                 generatedVideo: uploadResult.secure_url,
-                isGenerating: false
+                isGenerating: false,
+                error: ''
             }
         })
 
         // remove video file from disk after upload
         fs.unlinkSync(filePath)
-        res.json({message: 'Video generation completed',videoUrl: uploadResult.secure_url})
+        res.json({message: 'Video generation completed',videoUrl: uploadResult.secure_url, projectId: activeProjectId})
 
     } catch (error: any ){
-            //update project status and eror message
-            await prisma.project.update({
-                where: {id: projectId,userId},
-                data: {isGenerating: false, error: error.message}
-            })
+            if(activeProjectId){
+                // update project status and error message
+                await prisma.project.update({
+                    where: {id: activeProjectId,userId},
+                    data: {isGenerating: false, error: error.message}
+                })
+            }
         
 
         if(isCrediedDeducted){
             // add credits back
             await prisma.user.update({
                 where: {id: userId},
-                data: {credits: {increment: 5}}
+                data: {credits: {increment: videoCreditCost}}
             })
         }
         Sentry.captureException(error);

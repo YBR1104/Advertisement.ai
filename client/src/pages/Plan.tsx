@@ -3,8 +3,8 @@ import Title from "../components/Title";
 
 const Plan = () => {
     return (
-        <div className="px-4 max-sm:py-10 sm:pt-24" >
-            <section className="mx-auto max-w-6xl rounded-3xl border border-gray-900/10 bg-white p-5 shadow-[0_20px_45px_rgba(2,6,23,0.08)] md:p-8">
+        <div className="space-y-6" >
+            <section className="editor-panel rounded-3xl p-6 sm:p-8">
                 <Title
                     title="Plans"
                     heading="Choose the right plan for your team"
@@ -14,31 +14,31 @@ const Plan = () => {
                 <PricingTable appearance={{
                     variables: {
                         colorBackground: "transparent",
-                        colorText: "#0f172a",
-                        colorTextSecondary: "#475569",
-                        colorPrimary: "#0284c7",
+                        colorText: "#f4f4f5",
+                        colorTextSecondary: "#a1a1aa",
+                        colorPrimary: "#8b5cf6",
                         colorTextOnPrimaryBackground: "#ffffff"
                     },
                     elements: {
                         pricingTable: "grid gap-5 md:grid-cols-3",
-                        pricingTableCard: "h-full rounded-2xl border-2 border-sky-200 bg-sky-50/60 shadow-none",
-                        pricingTableCardHeader: "border-b border-sky-200 bg-transparent",
-                        pricingTableCardBody: "bg-transparent text-gray-700",
-                        pricingTableCardFooter: "border-t border-sky-200 bg-transparent",
-                        pricingTableCardTitle: "text-gray-900",
-                        pricingTableCardSubtitle: "text-gray-600",
-                        pricingTableCardFeatures: "text-gray-700",
-                        pricingTableCardPrice: "text-sky-700",
-                        pricingTableCardPriceText: "text-sky-700",
-                        pricingTableCardAmount: "text-gray-900",
-                        pricingTableCardDescription: "text-gray-600",
-                        pricingTableCardFeaturesListItem: "text-gray-700",
+                        pricingTableCard: "h-full rounded-2xl border border-white/12 bg-[#171821] shadow-none",
+                        pricingTableCardHeader: "border-b border-white/10 bg-transparent",
+                        pricingTableCardBody: "bg-transparent text-zinc-200",
+                        pricingTableCardFooter: "border-t border-white/10 bg-transparent",
+                        pricingTableCardTitle: "text-zinc-100",
+                        pricingTableCardSubtitle: "text-zinc-400",
+                        pricingTableCardFeatures: "text-zinc-300",
+                        pricingTableCardPrice: "text-violet-300",
+                        pricingTableCardPriceText: "text-violet-300",
+                        pricingTableCardAmount: "text-zinc-100",
+                        pricingTableCardDescription: "text-zinc-400",
+                        pricingTableCardFeaturesListItem: "text-zinc-300",
                         button: "text-white"
                     }
                 }} />
             </section>
 
-            <p className="mx-auto my-12 max-w-md text-center text-sm text-gray-600">Create stunning Images for just <span className="font-medium text-sky-700">5 credits </span>and generate videos for <span className="font-medium text-sky-700">10 credits</span></p>
+            <p className="mx-auto max-w-xl rounded-2xl border border-white/12 bg-[#171821] px-5 py-4 text-center text-sm text-zinc-400">Create stunning Images for just <span className="font-medium text-violet-200">5 credits </span>and generate videos for <span className="font-medium text-violet-200">10 credits</span></p>
         </div>
     );
 }   

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import type { Project } from "../types"
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EllipsisIcon, ImageIcon, Loader2Icon, PlaySquareIcon, Share2Icon, Trash2Icon } from "lucide-react";
 import { GhostButton, PrimaryButton } from "./Buttons";
 import { useAuth } from "@clerk/react";
@@ -11,7 +11,34 @@ const ProjectCard = ({gen , setGenerations, forCommunity = false} : {gen: Projec
     const {getToken} = useAuth();
     const navigate = useNavigate();
     const [menuOpen , setMenuOpen] = useState(false)
+    const menuRef = useRef<HTMLDivElement | null>(null)
+
+    useEffect(() => {
+        if (!menuOpen) return;
+
+        const closeOnOutsideClick = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setMenuOpen(false);
+            }
+        };
+
+        const closeOnEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setMenuOpen(false);
+            }
+        };
+
+        window.addEventListener('mousedown', closeOnOutsideClick);
+        window.addEventListener('keydown', closeOnEscape);
+
+        return () => {
+            window.removeEventListener('mousedown', closeOnOutsideClick);
+            window.removeEventListener('keydown', closeOnEscape);
+        };
+    }, [menuOpen]);
+
     const handleDelete = async (id: string | undefined) => {
+        if (!id) return;
         
         const confirm = window.confirm('Are you sure you want to delete this project');
         if(!confirm) return;
@@ -25,6 +52,33 @@ const ProjectCard = ({gen , setGenerations, forCommunity = false} : {gen: Projec
         } catch (error:any) {
             toast.error(error?.response?.data?.message || error.message);
             console.log(error)
+        }
+    }
+
+    const handleShare = async () => {
+        const shareUrl = gen.generatedImage || gen.generatedVideo;
+        if (!shareUrl) return;
+
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    url: shareUrl,
+                    title: gen.productName,
+                    text: gen.productDescription,
+                });
+                return;
+            }
+
+            if (!navigator.clipboard) {
+                toast.error('Sharing is not supported in this browser');
+                return;
+            }
+
+            await navigator.clipboard.writeText(shareUrl);
+            toast.success('Share link copied to clipboard');
+        } catch (error: any) {
+            if (error?.name === 'AbortError') return;
+            toast.error('Unable to share this project');
         }
     }
     const togglePublish = async (projectId: string | undefined)=> {
@@ -44,7 +98,7 @@ const ProjectCard = ({gen , setGenerations, forCommunity = false} : {gen: Projec
     
     return (
         <div key={gen.id} className="mb-4 break-inside-avoid">
-            <div className="group overflow-hidden rounded-xl border border-gray-900/10 bg-white shadow-[0_14px_35px_rgba(2,6,23,0.08)] transition hover:border-sky-300/50">
+            <div className="group overflow-hidden rounded-2xl border border-white/12 bg-[#11111a]/95 shadow-[0_18px_45px_rgba(0,0,0,0.45)] transition hover:border-violet-400/35">
             {/* preview */}
             <div className={`${gen?.aspectRatio === '9:16' ? 'aspect-9/16':'aspect-video'} relative overflow-hidden`}>
                 {gen.generatedImage && (
@@ -57,44 +111,58 @@ const ProjectCard = ({gen , setGenerations, forCommunity = false} : {gen: Projec
                     <video src={gen.generatedVideo} muted loop playsInline 
                     className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition duration-500"
                     onMouseEnter={(e) =>e.currentTarget.play()}
-                    onMouseLeave={(e) => e.currentTarget.pause}/>
+                    onMouseLeave={(e) => e.currentTarget.pause()}/>
                 )}
 
                 {(!gen?.generatedImage && !gen?.generatedVideo) && (
-                    <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center bg-black/20">
+                    <div className="absolute inset-0 flex h-full w-full flex-col items-center justify-center bg-black/30 text-violet-200">
                         <Loader2Icon className="size-7 animate-spin"/>
                     </div>
                 )}
                 {/* status badges */}
                 <div className="absolute left-3 top-3 flex gap-2 items-center">
                     {gen.isGenerating && (
-                        <span className="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-700">Generating</span>
+                        <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-1 text-xs text-amber-200">Generating</span>
                     )}
                      {gen.isPublished && (
-                        <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-700">Published</span>
+                        <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-200">Published</span>
                     )}
                 </div>
                   {/* source images for my geneartions only */}
                   {!forCommunity && (
-                    <div 
-                    onMouseDownCapture={()=>{setMenuOpen(true)}}
-                    onMouseLeave={()=> {setMenuOpen(false)}}
-                    className="absolute right-3 top-3 sm:opacity-0 group-hover:opacity-100 transition flex items-center gap-2">
-                        <div className="absolute top-3 right-3"> 
-                            <EllipsisIcon className="ml-auto size-7 rounded-full border border-gray-900/12 bg-white/95 p-1 text-gray-700"/>
-                        </div>
-                        <div className="flex flex-col items-end w-32 text-sm">
-                            <ul className={`z-10 mt-2 w-40 overflow-hidden rounded-lg border border-gray-900/12 bg-white py-1 text-xs text-gray-700 shadow-md ${menuOpen ? 'block':'hidden'}`}>
-                                {gen.generatedImage && <a href="#" download className="flex gap-2 items-center px-4 py-2 hover:bg-gray-100 cursor-pointer"><ImageIcon size
-                                = {14}/> Download images</a>}
-                                {gen.generatedVideo && <a href="#" download className="flex gap-2 items-center px-4 py-2 hover:bg-gray-100 cursor-pointer"><PlaySquareIcon size
+                    <div
+                    ref={menuRef}
+                    onMouseLeave={() => {setMenuOpen(false)}}
+                    onBlur={(event) => {
+                        if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                            setMenuOpen(false);
+                        }
+                    }}
+                    className="absolute right-3 top-3 sm:opacity-0 group-hover:opacity-100 transition">
+                        <button
+                            type="button"
+                            aria-haspopup="menu"
+                            aria-expanded={menuOpen}
+                            aria-label="Open project actions"
+                            onClick={() => setMenuOpen((prev) => !prev)}
+                            className="ml-auto inline-flex size-7 items-center justify-center rounded-full border border-white/14 bg-[#0c0c12]/90 text-zinc-200 transition hover:border-violet-400/50 hover:text-violet-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#07070a]"
+                        >
+                            <EllipsisIcon className="size-4"/>
+                        </button>
+
+                        <div className="flex w-40 flex-col items-end text-sm">
+                            <ul role="menu" className={`z-10 mt-2 w-full overflow-hidden rounded-lg border border-white/15 bg-[#0c0c12] py-1 text-xs text-zinc-300 shadow-md ${menuOpen ? 'block':'hidden'}`}>
+                                {gen.generatedImage && <a role="menuitem" href={gen.generatedImage} download className="flex cursor-pointer items-center gap-2 px-4 py-2 hover:bg-[#181921] focus-visible:outline-none focus-visible:bg-[#181921]"><ImageIcon size
+                                = {14}/> Download Image</a>}
+                                {gen.generatedVideo && <a role="menuitem" href={gen.generatedVideo} download className="flex cursor-pointer items-center gap-2 px-4 py-2 hover:bg-[#181921] focus-visible:outline-none focus-visible:bg-[#181921]"><PlaySquareIcon size
                                 = {14}/> Download Video</a>}
                                 {(gen.generatedImage || gen.generatedVideo) && <button
-                                    onClick={()=> navigator.share({url: gen.generatedImage || gen.generatedVideo , title: gen.productName, text: gen.productDescription})} 
-                                    className="w-full flex gap-2 items-center px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                                    onClick={handleShare} 
+                                    role="menuitem"
+                                    className="flex w-full cursor-pointer items-center gap-2 px-4 py-2 hover:bg-[#181921] focus-visible:outline-none focus-visible:bg-[#181921]">
                                         <Share2Icon size={14}/> Share
                                     </button>}
-                                    <button onClick={()=> handleDelete(gen.id)} className="w-full cursor-pointer px-4 py-2 text-left text-red-500 hover:bg-red-50"><span className="flex items-center gap-2"><Trash2Icon size={14}/>Delete</span></button>
+                                    <button role="menuitem" onClick={()=> handleDelete(gen.id)} className="w-full cursor-pointer px-4 py-2 text-left text-rose-300 hover:bg-rose-500/15 focus-visible:outline-none focus-visible:bg-rose-500/15"><span className="flex items-center gap-2"><Trash2Icon size={14}/>Delete</span></button>
                             </ul>
                         </div>
                     </div>
@@ -102,8 +170,8 @@ const ProjectCard = ({gen , setGenerations, forCommunity = false} : {gen: Projec
 
                 {/* source images */}
                 <div className="absolute right-3 bottom-3">
-                    <img src={gen.uploadedImages[0]} alt="product" className="h-16 w-16 rounded-full border border-white object-cover shadow-md animate-float" />
-                    <img src={gen.uploadedImages[1]} alt="model" className="-ml-8 h-16 w-16 rounded-full border border-white object-cover shadow-md animate-float" />
+                    {gen.uploadedImages?.[0] && <img src={gen.uploadedImages[0]} alt="product" className="h-14 w-14 rounded-full border border-white object-cover shadow-md animate-float sm:h-16 sm:w-16" />}
+                    {gen.uploadedImages?.[1] && <img src={gen.uploadedImages[1]} alt="model" className="-ml-7 h-14 w-14 rounded-full border border-white object-cover shadow-md animate-float sm:-ml-8 sm:h-16 sm:w-16" />}
 
                 </div>
             </div>
@@ -111,15 +179,15 @@ const ProjectCard = ({gen , setGenerations, forCommunity = false} : {gen: Projec
             <div className="p-4"> 
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                        <h3 className="font-medium text-lg mb-1">{gen.productName}</h3>
-                         <p className="text-sm text-gray-500">Created: {new Date(gen.createdAt).toLocaleString()}</p>
+                        <h3 className="mb-1 text-lg font-medium text-zinc-100">{gen.productName}</h3>
+                         <p className="text-sm text-zinc-400">Created: {new Date(gen.createdAt).toLocaleString()}</p>
                          {gen.updatedAt && (
-                             <p className="mt-1 text-xs text-gray-400">Updated: {new Date(gen.updatedAt).toLocaleString()}</p>
+                             <p className="mt-1 text-xs text-zinc-500">Updated: {new Date(gen.updatedAt).toLocaleString()}</p>
                             ) }
                     </div>
                     <div className="text-right">
                         <div className="mt-2 flex flex-col items-end gap-1">
-                            <span className="rounded-full border border-gray-900/12 bg-gray-50 px-2 py-1 text-xs text-gray-600">Aspect: {gen.aspectRatio}</span>
+                            <span className="rounded-full border border-white/12 bg-[#171821] px-2 py-1 text-xs text-zinc-300">Aspect: {gen.aspectRatio}</span>
                         </div>
 
                     </div>
@@ -127,21 +195,21 @@ const ProjectCard = ({gen , setGenerations, forCommunity = false} : {gen: Projec
                 {/* Product description */}
                 {gen.productDescription && (
                     <div className="mt-3">
-                        <p className="mb-1 text-xs text-gray-500">Description</p>
-                        <div className="break-words rounded-md bg-gray-50 p-2 text-sm text-gray-600">{gen.productDescription}</div>
+                        <p className="mb-1 text-xs text-zinc-500">Description</p>
+                        <div className="break-words rounded-md bg-[#171821] p-2 text-sm text-zinc-300">{gen.productDescription}</div>
                         </div>
                 )}
                 {/*user prompt */}
                  {gen.userPrompt && (
                     <div className="mt-3">
-                        <div className="text-xs text-gray-600">{gen.userPrompt}</div>
+                        <div className="text-xs text-zinc-400">{gen.userPrompt}</div>
                         </div>
                 )}
                 {/* buttons */}
                 {!forCommunity && (
                     <div className="mt-4 grid grid-cols-2 gap-3">
-                        <GhostButton className="text-xs justify-center" onClick={()=> {navigate(`/result/${gen.id}`); scrollTo(0,0)}}>View Details</GhostButton>
-                    <PrimaryButton onClick={()=> togglePublish(gen.id)}>{gen.isPublished ? 'Unpublish' : 'Publish'}</PrimaryButton>
+                        <GhostButton className="justify-center rounded-full border-white/12 bg-[#171821] text-xs text-zinc-200 hover:border-violet-400/60 hover:text-violet-200" onClick={()=> {navigate(`/result/${gen.id}`); scrollTo(0,0)}}>View Details</GhostButton>
+                    <PrimaryButton className="rounded-full" onClick={()=> togglePublish(gen.id)}>{gen.isPublished ? 'Unpublish' : 'Publish'}</PrimaryButton>
                     </div>
                 )}
             </div>
